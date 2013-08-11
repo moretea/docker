@@ -1,9 +1,5 @@
 package docker
 
-import (
-	"strings"
-)
-
 // Compare two Config struct. Do not compare the "Image" nor "Hostname" fields
 // If OpenStdin is set, then it differs
 func CompareConfig(a, b *Config) bool {
@@ -41,8 +37,13 @@ func CompareConfig(a, b *Config) bool {
 			return false
 		}
 	}
-	for i := 0; i < len(a.Env); i++ {
-		if a.Env[i] != b.Env[i] {
+	for key, value := range a.Env {
+		if b.Env[key] != value {
+			return false
+		}
+	}
+	for key, value := range b.Env {
+		if a.Env[key] != value {
 			return false
 		}
 	}
@@ -106,17 +107,9 @@ func MergeConfig(userConf, imageConf *Config) {
 	if userConf.Env == nil || len(userConf.Env) == 0 {
 		userConf.Env = imageConf.Env
 	} else {
-		for _, imageEnv := range imageConf.Env {
-			found := false
-			imageEnvKey := strings.Split(imageEnv, "=")[0]
-			for _, userEnv := range userConf.Env {
-				userEnvKey := strings.Split(userEnv, "=")[0]
-				if imageEnvKey == userEnvKey {
-					found = true
-				}
-			}
-			if !found {
-				userConf.Env = append(userConf.Env, imageEnv)
+		for key, value := range imageConf.Env {
+			if userConf.Env[key] == "" {
+				userConf.Env[key] = value
 			}
 		}
 	}

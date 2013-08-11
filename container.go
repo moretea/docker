@@ -70,7 +70,7 @@ type Config struct {
 	Tty             bool // Attach standard streams to a tty, including stdin if it is not closed.
 	OpenStdin       bool // Open stdin
 	StdinOnce       bool // If true, close stdin after the 1 attached client disconnects.
-	Env             []string
+	Env             map[string]string
 	Cmd             []string
 	Dns             []string
 	Image           string // Name of the image as it was passed by the operator (eg. could be symbolic)
@@ -89,6 +89,16 @@ type BindMap struct {
 	SrcPath string
 	DstPath string
 	Mode    string
+}
+
+func NewConfig() *Config {
+	config := &Config{};
+	config.Env = make(map[string]string)
+
+	// Set some defaults
+	config.Env["HOME"] = "/"
+	config.Env["PATH"] = "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+	return config
 }
 
 func ParseRun(args []string, capabilities *Capabilities) (*Config, *HostConfig, *flag.FlagSet, error) {
@@ -175,26 +185,37 @@ func ParseRun(args []string, capabilities *Capabilities) (*Config, *HostConfig, 
 		entrypoint = []string{*flEntrypoint}
 	}
 
-	config := &Config{
-		Hostname:        *flHostname,
-		PortSpecs:       flPorts,
-		User:            *flUser,
-		Tty:             *flTty,
-		NetworkDisabled: !*flNetwork,
-		OpenStdin:       *flStdin,
-		Memory:          *flMemory,
-		CpuShares:       *flCpuShares,
-		AttachStdin:     flAttach.Get("stdin"),
-		AttachStdout:    flAttach.Get("stdout"),
-		AttachStderr:    flAttach.Get("stderr"),
-		Env:             flEnv,
-		Cmd:             runCmd,
-		Dns:             flDns,
-		Image:           image,
-		Volumes:         flVolumes,
-		VolumesFrom:     *flVolumesFrom,
-		Entrypoint:      entrypoint,
+	config := NewConfig()
+	config.Hostname =        *flHostname
+	config.PortSpecs =       flPorts
+	config.User =            *flUser
+	config.Tty =             *flTty
+	config.NetworkDisabled = !*flNetwork
+	config.OpenStdin =       *flStdin
+	config.Memory =          *flMemory
+	config.CpuShares =       *flCpuShares
+	config.AttachStdin =     flAttach.Get("stdin")
+	config.AttachStdout =    flAttach.Get("stdout")
+	config.AttachStderr =    flAttach.Get("stderr")
+	config.Cmd =             runCmd
+	config.Dns =             flDns
+	config.Image =           image
+	config.Volumes =         flVolumes
+	config.VolumesFrom =     *flVolumesFrom
+	config.Entrypoint =      entrypoint
+
+	for _, entry := range flEnv {
+		tmp := strings.SplitN(entry, " ", 2)
+		if len(tmp) != 2 {
+			return nil, nil, nil, fmt.Errorf("Invalid ENV format")
+		}
+
+		key := strings.Trim(tmp[0], " \t")
+		value := strings.Trim(tmp[1], " \t")
+
+		config.Env[key] = value
 	}
+
 	hostConfig := &HostConfig{
 		Binds:           binds,
 		ContainerIDFile: *flContainerIDFile,

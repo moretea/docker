@@ -68,10 +68,7 @@ func (b *buildFile) CmdFrom(name string) error {
 		}
 	}
 	b.image = image.ID
-	b.config = &Config{}
-	if b.config.Env == nil || len(b.config.Env) == 0 {
-		b.config.Env = append(b.config.Env, "HOME=/", "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin")
-	}
+	b.config = NewConfig()
 	return nil
 }
 
@@ -120,40 +117,30 @@ func (b *buildFile) CmdRun(args string) error {
 
 	return nil
 }
-
-func (b *buildFile) FindEnvKey(key string) int {
-	for k, envVar := range b.config.Env {
-		envParts := strings.SplitN(envVar, "=", 2)
-		if key == envParts[0] {
-			return k
-		}
-	}
-	return -1
-}
-
 func (b *buildFile) ReplaceEnvMatches(value string) (string, error) {
-	exp, err := regexp.Compile("(\\\\\\\\+|[^\\\\]|\\b|\\A)\\$({?)([[:alnum:]_]+)(}?)")
-	if err != nil {
-		return value, err
-	}
-	matches := exp.FindAllString(value, -1)
-	for _, match := range matches {
-		match = match[strings.Index(match, "$"):]
-		matchKey := strings.Trim(match, "${}")
+       exp, err := regexp.Compile("(\\\\\\\\+|[^\\\\]|\\b|\\A)\\$({?)([[:alnum:]_]+)(}?)")
+       if err != nil {
+               return value, err
+       }
+       matches := exp.FindAllString(value, -1)
+       for _, match := range matches {
+               match = match[strings.Index(match, "$"):]
+               matchKey := strings.Trim(match, "${}")
 
-		for _, envVar := range b.config.Env {
-			envParts := strings.SplitN(envVar, "=", 2)
-			envKey := envParts[0]
-			envValue := envParts[1]
+               for _, envVar := range b.config.Env {
+                       envParts := strings.SplitN(envVar, "=", 2)
+                       envKey := envParts[0]
+                       envValue := envParts[1]
 
-			if envKey == matchKey {
-				value = strings.Replace(value, match, envValue, -1)
-				break
-			}
-		}
-	}
-	return value, nil
+                       if envKey == matchKey {
+                               value = strings.Replace(value, match, envValue, -1)
+                               break
+                       }
+               }
+       }
+       return value, nil
 }
+
 
 func (b *buildFile) CmdEnv(args string) error {
 	tmp := strings.SplitN(args, " ", 2)
@@ -163,19 +150,8 @@ func (b *buildFile) CmdEnv(args string) error {
 	key := strings.Trim(tmp[0], " \t")
 	value := strings.Trim(tmp[1], " \t")
 
-	envKey := b.FindEnvKey(key)
-	replacedValue, err := b.ReplaceEnvMatches(value)
-	if err != nil {
-		return err
-	}
-	replacedVar := fmt.Sprintf("%s=%s", key, replacedValue)
-
-	if envKey >= 0 {
-		b.config.Env[envKey] = replacedVar
-	} else {
-		b.config.Env = append(b.config.Env, replacedVar)
-	}
-	return b.commit("", b.config.Cmd, fmt.Sprintf("ENV %s", replacedVar))
+	b.config.Env[key] = value
+	return nil
 }
 
 func (b *buildFile) CmdCmd(args string) error {
@@ -517,7 +493,7 @@ func NewBuildFile(srv *Server, out io.Writer, verbose, utilizeCache bool) BuildF
 		builder:       NewBuilder(srv.runtime),
 		runtime:       srv.runtime,
 		srv:           srv,
-		config:        &Config{},
+		config:        NewConfig(),
 		out:           out,
 		tmpContainers: make(map[string]struct{}),
 		tmpImages:     make(map[string]struct{}),

@@ -146,40 +146,55 @@ func TestCompareConfig(t *testing.T) {
 	config1 := Config{
 		Dns:         []string{"1.1.1.1", "2.2.2.2"},
 		PortSpecs:   []string{"1111:1111", "2222:2222"},
-		Env:         []string{"VAR1=1", "VAR2=2"},
+		Env:         make(map[string]string),
 		VolumesFrom: "11111111",
 		Volumes:     volumes1,
 	}
+	config1.Env["VAR1"] = "1"
+	config1.Env["VAR2"] = "2"
+
 	config2 := Config{
 		Dns:         []string{"0.0.0.0", "2.2.2.2"},
 		PortSpecs:   []string{"1111:1111", "2222:2222"},
-		Env:         []string{"VAR1=1", "VAR2=2"},
+		Env:         make(map[string]string),
 		VolumesFrom: "11111111",
 		Volumes:     volumes1,
 	}
+	config2.Env["VAR1"] = "1"
+	config2.Env["VAR2"] = "2"
+
 	config3 := Config{
 		Dns:         []string{"1.1.1.1", "2.2.2.2"},
 		PortSpecs:   []string{"0000:0000", "2222:2222"},
-		Env:         []string{"VAR1=1", "VAR2=2"},
+		Env:         make(map[string]string),
 		VolumesFrom: "11111111",
 		Volumes:     volumes1,
 	}
+	config3.Env["VAR1"] = "1"
+	config3.Env["VAR2"] = "2"
+
 	config4 := Config{
 		Dns:         []string{"1.1.1.1", "2.2.2.2"},
 		PortSpecs:   []string{"0000:0000", "2222:2222"},
-		Env:         []string{"VAR1=1", "VAR2=2"},
+		Env:         make(map[string]string),
 		VolumesFrom: "22222222",
 		Volumes:     volumes1,
 	}
+	config4.Env["VAR1"] = "1"
+	config4.Env["VAR2"] = "2"
+
 	volumes2 := make(map[string]struct{})
 	volumes2["/test2"] = struct{}{}
 	config5 := Config{
 		Dns:         []string{"1.1.1.1", "2.2.2.2"},
 		PortSpecs:   []string{"0000:0000", "2222:2222"},
-		Env:         []string{"VAR1=1", "VAR2=2"},
+		Env:         make(map[string]string),
 		VolumesFrom: "11111111",
 		Volumes:     volumes2,
 	}
+	config5.Env["VAR1"] = "1"
+	config5.Env["VAR2"] = "2"
+
 	if CompareConfig(&config1, &config2) {
 		t.Fatalf("CompareConfig should return false, Dns are different")
 	}
@@ -204,19 +219,23 @@ func TestMergeConfig(t *testing.T) {
 	configImage := &Config{
 		Dns:         []string{"1.1.1.1", "2.2.2.2"},
 		PortSpecs:   []string{"1111:1111", "2222:2222"},
-		Env:         []string{"VAR1=1", "VAR2=2"},
+		Env:         make(map[string]string),
 		VolumesFrom: "1111",
 		Volumes:     volumesImage,
 	}
+	configImage.Env["VAR1"] = "1"
+	configImage.Env["VAR2"] = "2"
 
 	volumesUser := make(map[string]struct{})
 	volumesUser["/test3"] = struct{}{}
 	configUser := &Config{
 		Dns:       []string{"3.3.3.3"},
 		PortSpecs: []string{"3333:2222", "3333:3333"},
-		Env:       []string{"VAR2=3", "VAR3=3"},
+		Env:       make(map[string]string),
 		Volumes:   volumesUser,
 	}
+	configUser.Env["VAR2"] = "3"
+	configUser.Env["VAR3"] = "3"
 
 	MergeConfig(configUser, configImage)
 
@@ -267,18 +286,22 @@ func TestMergeConfigPublicPortNotHonored(t *testing.T) {
 	configImage := &Config{
 		Dns:       []string{"1.1.1.1", "2.2.2.2"},
 		PortSpecs: []string{"1111", "2222"},
-		Env:       []string{"VAR1=1", "VAR2=2"},
+		Env:       make(map[string]string),
 		Volumes:   volumesImage,
 	}
+	configImage.Env["VAR1"] = "1"
+	configImage.Env["VAR2"] = "2"
 
 	volumesUser := make(map[string]struct{})
 	volumesUser["/test3"] = struct{}{}
 	configUser := &Config{
 		Dns:       []string{"3.3.3.3"},
 		PortSpecs: []string{"1111:3333"},
-		Env:       []string{"VAR2=3", "VAR3=3"},
+		Env:       make(map[string]string),
 		Volumes:   volumesUser,
 	}
+	configUser.Env["VAR2"] = "3"
+	configUser.Env["VAR3"] = "3"
 
 	MergeConfig(configUser, configImage)
 
